@@ -1,4 +1,4 @@
-class NodoCola:
+class Nodo:
     __valor = 0
     __siguiente = None
 

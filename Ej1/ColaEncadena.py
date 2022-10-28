@@ -1,4 +1,4 @@
-from NodoCola import NodoCola
+from Nodo import Nodo
 
 class ColaEncadenada:
     __cabeza = None
@@ -12,7 +12,7 @@ class ColaEncadenada:
         return self.__cabeza == None
     
     def Insertar(self,valor):
-        nuevoNodo = NodoCola(valor)
+        nuevoNodo = Nodo(valor)
         if self.vacia():
             self.__cabeza = nuevoNodo
             self.__ultimo = nuevoNodo
