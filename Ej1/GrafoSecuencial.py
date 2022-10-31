@@ -1,6 +1,8 @@
+
 import numpy as np
+
 from ColaEncadena import ColaEncadenada
-from Ej4.CeldaTabla import CeldaTabla
+from CeldaTabla import CeldaTabla
 class GrafoSecuencial:
     __cantVertices = None
     __matrizAdyacencia = None
@@ -9,46 +11,58 @@ class GrafoSecuencial:
         self.__cantVertices = cantVertices
         self.__matrizAdyacencia = np.zeros((cantVertices,cantVertices),dtype= int)
     
-    def CrearArco(self,vertice1,vertice2):
+    def CrearArco(self,vertice1,vertice2,peso = 1):
         if vertice1 >= self.__cantVertices or vertice1 < 0 or vertice2 >= self.__cantVertices or vertice2 < 0:
             print("Vertices no existente")
         else:
-            self.__matrizAdyacencia[vertice1,vertice2] = 1
-            self.__matrizAdyacencia[vertice2,vertice1] = 1
+            self.__matrizAdyacencia[vertice1,vertice2] = peso
+            self.__matrizAdyacencia[vertice2,vertice1] = peso
     
     def mostrarArreglo(self):
         print(self.__matrizAdyacencia)
     
     def Adyacentes(self,vertice):
+        adyacentes = []
         for i in range(self.__cantVertices):
-            if self.__matrizAdyacencia[vertice,i] == 1:
-                print(i)
+            if self.__matrizAdyacencia[vertice,i]:
+                adyacentes.append(i)
+        return adyacentes
     
-    "Camino entre nodos"
-    def WARSHALL (self):
-        matrizCamino = self.__matrizAdyacencia
-        
-        for k in range(self.__cantVertices):
-            for i in range(self.__cantVertices):
-                for j in range(self.__cantVertices):
-                    if matrizCamino[i,j]  == 1 or (matrizCamino[i,k] * matrizCamino[k,j]) == 1:
-                        matrizCamino[i,j] = 1
-                    else:
-                        matrizCamino[i,j] = 0
-        return matrizCamino
+    def getCamino(self,inicio,fin):
+        d= np.zeros(self.__cantVertices,dtype=int)
+        resultado = self.REP_visita(inicio, fin, d)
+        if isinstance(resultado,list):
+            resultado.insert(0,inicio)
+        return resultado
+    
+    def REP_visita(self, nodo_origen, nodo_destino, d):
+        d[nodo_origen] = 1
+        adys = self.Adyacentes(nodo_origen)
+        for nodos in adys:
+            if nodos == nodo_destino:
+                return [nodo_destino]
+            if d[nodos] == 0:
+                retorno = self.REP_visita(nodos, nodo_destino, d)
+                if isinstance(retorno, list):
+                    retorno.insert(0,nodos)
+                    return retorno
+        return 0
+
+    
+   
     
     def Conexo(self):
-        matriz = self.WARSHALL()
-        resultado = True
+        band = True
         i = 0
-        while i < self.__cantVertices and resultado:
-            j=0
-            while j < self.__cantVertices and resultado:
-                if matriz[i,j] == 0:
-                    resultado = False
-                j+=1
+        while i < self.__cantVertices and band:
+            if len(self.Adyacentes(i)) == 0:
+                band = False
             i+=1
-        print(resultado)
+        if band == False:
+            print("Es disconexo")
+        else:
+            print("Es conexo")
+
 
     def RecorridoEnAnchura(self,origen):
         arreglo = -1*np.ones(self.__cantVertices,dtype=int)
@@ -59,15 +73,14 @@ class GrafoSecuencial:
         v = 0
         while not cola.vacia():
             cola.Suprimir()
-            for i in range(self.__cantVertices):
-                if self.__matrizAdyacencia[v,i] == 1:
+            for i in self.Adyacentes(v):
                     if arreglo[i] == -1:
                         arreglo[i] = arreglo[v] + 1
                         cola.Insertar(i)
             v+=1
         print(arreglo)
     
-    def Djikstra(self,origen,destino):
+    def Dijkstra(self,origen,destino):
         Tabla = np.empty(self.__cantVertices,dtype=CeldaTabla)
         for i in range(self.__cantVertices):
             Tabla[i] = CeldaTabla()
@@ -76,19 +89,43 @@ class GrafoSecuencial:
         for i in range(self.__cantVertices):
             v = self.getV(Tabla)
             Tabla[v].setConocido(True)
-            for w in range(self.__cantVertices):
-                if self.__matrizAdyacencia[v,w] == 1:
+            for w in self.Adyacentes(v):
                     if Tabla[w].getConocido() == False:
                         if (Tabla[v].getDistancia() + self.__matrizAdyacencia[v,w]) < Tabla[w].getDistancia():
                             Tabla[w].setDistancia(Tabla[v].getDistancia() + self.__matrizAdyacencia[v,w])
                             Tabla[w].setCamino(v)
+        
         v = destino
         camino = [v]
         while Tabla[v].getCamino() != None:
             v = Tabla[v].getCamino()
             camino.insert(0,v)
         print(camino)
+
     
+    def Prim(self,origen):
+        Tabla = np.empty(self.__cantVertices,dtype=CeldaTabla)
+
+        for i in range(self.__cantVertices):
+            Tabla[i] = CeldaTabla()
+
+        Tabla[origen].setDistancia(0)
+        v = origen
+
+        for i in range(self.__cantVertices):
+            v = self.getV(Tabla)
+            Tabla[v].setConocido(True)
+            for w in self.Adyacentes(v):
+                if self.__matrizAdyacencia[v,w] == 1:
+                    if Tabla[w].getConocido() == False:
+                        if self.__matrizAdyacencia[v,w] < Tabla[w].getDistancia():
+                            Tabla[w].setDistancia(self.__matrizAdyacencia[v,w])
+                            Tabla[w].setCamino(v)
+        for i in range(len(Tabla)):
+            print(str(i) + ": " + str(Tabla[i]))
+
+    
+
     def getV(self,Tabla):
         v = 0
         mindist = 99999999
@@ -98,14 +135,43 @@ class GrafoSecuencial:
                 mindist = Tabla[i].getDistancia()
         return v
 
-    def REP(self):
-        arreglo = np.zeros(self.__cantVertices, dtype=int)
-        tiempo = 0
-        for i in range(self.__cantVertices):
-            if arreglo[i] == 0:
-                self.REPvisita()
+
+
+
+    def REP(self, actual,arreglo = None, recorrido = None):
+            if actual >=0  and actual < self.__cantVertices:
+                arreglo = np.zeros(self.__cantVertices,dtype = int)
+                recorrido = []
+                recorrido = self.REP_visita(actual = actual , arreglo = arreglo,recorrido = recorrido)
+                return recorrido
+            else:
+                print('ERROR: vertice  origen no valido')
+                return None
+            
+        
     
-    def REPvisita(self,s,tiempo):
-        pass
+    def REP_visita(self,actual,arreglo,recorrido):
+        recorrido.append(actual)
+        arreglo[actual] = 1
+        adyacentes = self.Adyacentes(actual)
+        for adyacente in adyacentes:
+            if arreglo[adyacente] == 0:
+               recorrido =  self.REP_visita(adyacente ,arreglo = arreglo,recorrido = recorrido)
+
+         
+        return recorrido
+    
+    def Aciclico(self,actual,arreglo,recorrido,ciclico):
+        if not ciclico:
+            recorrido.append(actual)
+            arreglo[actual] = 1
+            adyacentes = self.Adyacentes(actual)
+            for adyacente in adyacentes:
+                if arreglo[adyacente] == 0:
+                    ciclico =  self.C(adyacente ,arreglo = arreglo,recorrido = recorrido,ciclico=ciclico)
+                elif len(recorrido) >= 3:
+                    ciclico = True
+         
+        return ciclico
 
 

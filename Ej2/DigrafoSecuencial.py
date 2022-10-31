@@ -1,74 +1,79 @@
+
 import numpy as np
-from CeldaTabla import CeldaTabla
-from Nodo import Nodo
+
 from ColaEncadena import ColaEncadenada
-class GrafoEncadenado:
+from CeldaTabla import CeldaTabla
+class DigrafoSecuencial:
     __cantVertices = None
-    __arreglo = None
+    __matrizAdyacencia = None
 
     def __init__(self,cantVertices) -> None:
         self.__cantVertices = cantVertices
-        self.__arreglo = np.empty(cantVertices,dtype=Nodo)
+        self.__matrizAdyacencia = np.zeros((cantVertices,cantVertices),dtype= int)
     
-    def CrearArco(self,nodo1,nodo2):
-        if nodo1 < 0 or nodo1 >=len(self.__arreglo) or nodo2 < 0 or nodo2 >=len(self.__arreglo):
-            print("Nodo no validos")
+    def CrearArco(self,vertice1,vertice2,peso = 1):
+        if vertice1 >= self.__cantVertices or vertice1 < 0 or vertice2 >= self.__cantVertices or vertice2 < 0:
+            print("Vertices no existente")
         else:
-            self.InsertarArreglo(nodo1,nodo2)
-            self.InsertarArreglo(nodo2,nodo1)
+            self.__matrizAdyacencia[vertice1,vertice2] = peso
+            
     
-    def InsertarArreglo(self,pos,valor):
-        NuevoNodo = Nodo(valor)
-        if self.__arreglo[pos] == None:
-            self.__arreglo[pos] = NuevoNodo
-        else:
-            aux = self.__arreglo[pos]
-            repetido = False
-            while aux.getSiguiente() != None and not repetido:
-                if aux.getSiguiente().getValor() == valor:
-                    repetido = True
-                aux = aux.getSiguiente()
-            if not repetido:
-                aux.setSiguiente(NuevoNodo)
+    def mostrarArreglo(self):
+        print(self.__matrizAdyacencia)
     
-    def Adyacentes(self,nodo):
-        lista = []
-        aux = self.__arreglo[nodo]
-        while aux != None:
-            lista.append(aux.getValor())
-            aux = aux.getSiguiente()
-        return lista
-    
-    def Mostrar(self):
-        for i in range(len(self.__arreglo)):
-            cadena = str(i) + ": "
-            aux = self.__arreglo[i]
-            while aux != None:
-                cadena += str(aux.getValor())
-                aux = aux.getSiguiente()
-            print(cadena)
+    def Adyacentes(self,vertice):
+        adyacentes = []
+        for i in range(self.__cantVertices):
+            if self.__matrizAdyacencia[vertice,i]:
+                adyacentes.append(i)
+        return adyacentes
     
     def getCamino(self,inicio,fin):
         d= np.zeros(self.__cantVertices,dtype=int)
-        resultado = self.buscarCamino(inicio, fin, d)
+        resultado = self.REP_visita(inicio, fin, d)
         if isinstance(resultado,list):
             resultado.insert(0,inicio)
         return resultado
     
-    def buscarCamino(self, nodo_origen, nodo_destino, d):
+    def REP_visita(self, nodo_origen, nodo_destino, d):
         d[nodo_origen] = 1
         adys = self.Adyacentes(nodo_origen)
         for nodos in adys:
             if nodos == nodo_destino:
                 return [nodo_destino]
             if d[nodos] == 0:
-                retorno = self.buscarCamino(nodos, nodo_destino, d)
+                retorno = self.REP_visita(nodos, nodo_destino, d)
                 if isinstance(retorno, list):
                     retorno.insert(0,nodos)
                     return retorno
         return 0
 
     
+    def WARSHALL (self):
+        matrizCamino = self.__matrizAdyacencia
+        
+        for k in range(self.__cantVertices):
+            for i in range(self.__cantVertices):
+                for j in range(self.__cantVertices):
+                    if matrizCamino[i,j]  == 1 or (matrizCamino[i,k] * matrizCamino[k,j]) == 1:
+                        matrizCamino[i,j] = 1
+                    else:
+                        matrizCamino[i,j] = 0
+        return matrizCamino
+    
+    def Conexo(self):
+        matriz = self.WARSHALL()
+        resultado = True
+        i = 0
+        while i < self.__cantVertices and resultado:
+            j=0
+            while j < self.__cantVertices and resultado:
+                
+                if i != j and matriz[i,j] == 0:
+                    resultado = False
+                j+=1
+            i+=1
+        print(resultado)
 
     def RecorridoEnAnchura(self,origen):
         arreglo = -1*np.ones(self.__cantVertices,dtype=int)
@@ -127,30 +132,9 @@ class GrafoEncadenado:
                         if self.__matrizAdyacencia[v,w] < Tabla[w].getDistancia():
                             Tabla[w].setDistancia(self.__matrizAdyacencia[v,w])
                             Tabla[w].setCamino(v)
-        return Tabla
+        for i in range(len(Tabla)):
+            print(str(i) + ": " + str(Tabla[i]))
 
-
-    def REP(self, actual,arreglo = None, recorrido = None):
-            if actual >=0  and actual < self.__cantVertices:
-                arreglo = np.zeros(self.__cantVertices,dtype = int)
-                recorrido = []
-                recorrido = self.REP_Visita(actual = actual , arreglo = arreglo,recorrido = recorrido)
-                return recorrido
-            else:
-                print('ERROR: vertice  origen no valido')
-                return None
-        
-    
-    def REP_Visita(self,actual,arreglo,recorrido):
-        recorrido.append(actual)
-        arreglo[actual] = 1
-        adyacentes = self.Adyacentes(actual)
-        for adyacente in adyacentes:
-            if arreglo[adyacente] == 0:
-               recorrido =  self.REP_Visita(adyacente ,arreglo = arreglo,recorrido = recorrido)
-            
-         
-        return recorrido
     
 
     def getV(self,Tabla):
@@ -161,19 +145,22 @@ class GrafoEncadenado:
                 v = i
                 mindist = Tabla[i].getDistancia()
         return v
-    
-    def Conexo(self):
-        band = True
-        i = 0
-        while i < self.__cantVertices and band:
-            if len(self.Adyacentes(i)) == 0:
-                band = False
-        
-        if band == False:
-            print("")
 
+    def REP(self):
+        arreglo = np.zeros(self.__cantVertices, dtype=int)
+        tiempo = 0
+        for s in range(self.__cantVertices):
+            if arreglo[s] == 0:
+                arreglo = self.REPvisita(arreglo,s,tiempo)
+        print(arreglo)
     
-    
-
+    def REPvisita(self,arreglo,s,tiempo):
+        tiempo +=1
+        arreglo[s] = tiempo
+        for u in self.Adyacentes(s):
+            if arreglo[u] == 0:
+                return self.REPvisita(arreglo,u,tiempo)
+        tiempo +=1
+        return arreglo
 
 

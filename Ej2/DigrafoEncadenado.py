@@ -2,7 +2,7 @@ import numpy as np
 from CeldaTabla import CeldaTabla
 from Nodo import Nodo
 from ColaEncadena import ColaEncadenada
-class GrafoEncadenado:
+class DigrafoEncadenado:
     __cantVertices = None
     __arreglo = None
 
@@ -15,7 +15,7 @@ class GrafoEncadenado:
             print("Nodo no validos")
         else:
             self.InsertarArreglo(nodo1,nodo2)
-            self.InsertarArreglo(nodo2,nodo1)
+            
     
     def InsertarArreglo(self,pos,valor):
         NuevoNodo = Nodo(valor)
@@ -50,19 +50,19 @@ class GrafoEncadenado:
     
     def getCamino(self,inicio,fin):
         d= np.zeros(self.__cantVertices,dtype=int)
-        resultado = self.buscarCamino(inicio, fin, d)
+        resultado = self.REP_visita(inicio, fin, d)
         if isinstance(resultado,list):
             resultado.insert(0,inicio)
         return resultado
     
-    def buscarCamino(self, nodo_origen, nodo_destino, d):
+    def REP_visita(self, nodo_origen, nodo_destino, d):
         d[nodo_origen] = 1
         adys = self.Adyacentes(nodo_origen)
         for nodos in adys:
             if nodos == nodo_destino:
                 return [nodo_destino]
             if d[nodos] == 0:
-                retorno = self.buscarCamino(nodos, nodo_destino, d)
+                retorno = self.REP_visita(nodos, nodo_destino, d)
                 if isinstance(retorno, list):
                     retorno.insert(0,nodos)
                     return retorno
@@ -129,28 +129,6 @@ class GrafoEncadenado:
                             Tabla[w].setCamino(v)
         return Tabla
 
-
-    def REP(self, actual,arreglo = None, recorrido = None):
-            if actual >=0  and actual < self.__cantVertices:
-                arreglo = np.zeros(self.__cantVertices,dtype = int)
-                recorrido = []
-                recorrido = self.REP_Visita(actual = actual , arreglo = arreglo,recorrido = recorrido)
-                return recorrido
-            else:
-                print('ERROR: vertice  origen no valido')
-                return None
-        
-    
-    def REP_Visita(self,actual,arreglo,recorrido):
-        recorrido.append(actual)
-        arreglo[actual] = 1
-        adyacentes = self.Adyacentes(actual)
-        for adyacente in adyacentes:
-            if arreglo[adyacente] == 0:
-               recorrido =  self.REP_Visita(adyacente ,arreglo = arreglo,recorrido = recorrido)
-            
-         
-        return recorrido
     
 
     def getV(self,Tabla):
@@ -161,19 +139,50 @@ class GrafoEncadenado:
                 v = i
                 mindist = Tabla[i].getDistancia()
         return v
+
+    def REP(self):
+        arreglo = np.zeros(self.__cantVertices, dtype=int)
+        tiempo = 0
+        for s in range(self.__cantVertices):
+            if arreglo[s] == 0:
+                arreglo = self.REPvisita(arreglo,s,tiempo)
+        print(arreglo)
+    
+    def REPvisita(self,arreglo,s,tiempo):
+        tiempo +=1
+        arreglo[s] = tiempo
+        for u in self.Adyacentes(s):
+            if arreglo[u] == 0:
+                return self.REPvisita(arreglo,u,tiempo)
+        tiempo +=1
+        return arreglo
+
+    def WARSHALL (self):
+        matrizCamino = np.zeros((self.__cantVertices,self.__cantVertices),dtype=int)
+        for i in range(self.__cantVertices):
+            for j in self.Adyacentes(i):
+                matrizCamino[i,j] = 1
+        
+        for k in range(self.__cantVertices):
+            for i in range(self.__cantVertices):
+                for j in range(self.__cantVertices):
+                    if matrizCamino[i,j]  == 1 or (matrizCamino[i,k] * matrizCamino[k,j]) == 1:
+                        matrizCamino[i,j] = 1
+                    else:
+                        matrizCamino[i,j] = 0
+        return matrizCamino
     
     def Conexo(self):
-        band = True
+        matriz = self.WARSHALL()
+        resultado = True
         i = 0
-        while i < self.__cantVertices and band:
-            if len(self.Adyacentes(i)) == 0:
-                band = False
-        
-        if band == False:
-            print("")
-
-    
-    
-
-
+        while i < self.__cantVertices and resultado:
+            j=0
+            while j < self.__cantVertices and resultado:
+                
+                if i != j and matriz[i,j] == 0:
+                    resultado = False
+                j+=1
+            i+=1
+        print(resultado)
 
